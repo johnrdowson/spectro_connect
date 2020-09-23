@@ -1,0 +1,10 @@
+__pycache__/
+venv/
+.vscode/
+constants.py
+inventory/
+files/
+sandbox/
+.mypy_cache/
+*.pyc
+*.log
