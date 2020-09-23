@@ -49,15 +49,15 @@ A collection of tools which utilise an existing CA Spectrum environment.
 
 ### Spectrum Connect
 
-This tool proves an SSH or Telnet session to a device managed in Spectrum. The
-connection is relayed through SpectroServer, using the same mechanism as the
-Spectrum Client Console.
+This tool provides an SSH or Telnet session to a device managed in Spectrum.
+The connection is relayed through SpectroServer, using the same mechanism as
+the Spectrum Client Console.
 
 In Windows, a PuTTY connection will be launched. In Linux, it will use the
 built-in SSH client.
 
 If just an IP address is provided, it will attempt to estabish an SSH
-connection.
+connection:
 
 ```bash
 python spectrum_connect.py 172.31.100.20
@@ -72,7 +72,7 @@ python spectrum_connect.py 172.31.100.20 --telnet
 If a hostname is provided (i.e. anything other than an IPv4 address), a lookup
 of the name will be done via the Spectrum API. If a single match is found, the
 script will connect using the appropriate protocol, based on the NCM family of
-that particular device.
+that particular device:
 
 ```bash
 python spectrum_connect.py CORE_RTR01
