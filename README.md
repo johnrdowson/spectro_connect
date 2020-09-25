@@ -10,7 +10,7 @@ A collection of tools which utilise an existing CA Spectrum environment.
     git clone https://github.com/johnrdowson/spectrum_tools.git
     ```
 
-2. Create then activate a new virtual enviroment:
+2. (Optional) Create and activate a new Python virtual environment:
 
   - Linux/macOS:
 
@@ -36,13 +36,14 @@ A collection of tools which utilise an existing CA Spectrum environment.
   Spectrum environment.
 
     ```bash
-    # Spectrum OneClick Information
+    # IP address of SpectroServer
+    echo export "SPECTROSERVER_HOST=10.30.40.100" >> ~/.bash_profile
+
+    # Spectrum OneClick Information (only required if you want to use Spectrum
+    # device name look-ups)
     echo export "SPECTRUM_URL=http://spectrum-oc:8080" >> ~/.bash_profile
     echo export "SPECTRUM_USERNAME=operator" >> ~/.bash_profile
     echo export "SPECTRUM_PASSWORD=P@55w0rd123!" >> ~/.bash_profile
-
-    # IP address of SpectroServer
-    echo export "SPECTROSERVER_HOST=10.30.40.100" >> ~/.bash_profile
     ```
 
 ## Usage
