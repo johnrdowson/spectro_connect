@@ -12,19 +12,19 @@ A collection of tools which utilise an existing CA Spectrum environment.
 
 2. (Optional) Create and activate a new Python virtual environment:
 
-  - Linux/macOS:
+    - Linux/macOS:
 
-    ```bash
-    python -m venv venv
-    source venv/bin/activate
-    ```
+        ```bash
+        python -m venv venv
+        source venv/bin/activate
+        ```
 
-  - Windows (Git Bash):
+    - Windows (Git Bash):
 
-    ```bash
-    py -3 -m venv venv
-    source venv/Scripts/activate
-    ```
+        ```bash
+        py -3 -m venv venv
+        source venv/Scripts/activate
+        ```
 
 3. Install dependancies:
 
