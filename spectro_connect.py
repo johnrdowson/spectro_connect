@@ -119,7 +119,7 @@ def spectrum_device_search_by_name(name: str) -> List[Dict[str, str]]:
     # We first check if there are any at all, then loop through the results
     # and append each one to the 'devices' list, which is then returned.
 
-    devices = []
+    devices_found = []
     models = root.xpath("model-responses")[0]
     # print(etree.tostring(models, pretty_print=True).decode())
 
@@ -129,7 +129,7 @@ def spectrum_device_search_by_name(name: str) -> List[Dict[str, str]]:
         platforms = models.xpath("model/attribute[@id='0x12bef']/text()")
         handles = models.xpath("model/@mh")
         for index, name in enumerate(names):
-            devices.append(
+            devices_found.append(
                 {
                     "mh": handles[index],
                     "name": name,
@@ -138,7 +138,7 @@ def spectrum_device_search_by_name(name: str) -> List[Dict[str, str]]:
                 }
             )
 
-    return devices
+    return devices_found
 
 
 def transfer(src: socket.socket, dst: socket.socket, send: bool) -> None:
@@ -155,13 +155,6 @@ def transfer(src: socket.socket, dst: socket.socket, send: bool) -> None:
         if len(buffer) == 0:
             logging.debug("[-] No data received! Breaking...")
             break
-        # length = len(buffer)
-        # arrow = ">" if send else "<"
-        # logging.debug(
-        #     f"[+] {src_addr}:{src_port} "
-        #     f"{arrow} "
-        #     f"{dst_addr}:{dst_port} [{length}]"
-        # )
         try:
             dst.send(buffer)
         except:
@@ -336,7 +329,7 @@ def main(args: argparse.Namespace) -> None:
             )
         elif len(devices) > 1:
             print("Error: Mulitple device matches found:")
-            for device in sorted(devices, key = lambda i: i['name']):
+            for device in sorted(devices, key=lambda i: i["name"]):
                 print(device.get("name"))
             sys.exit(1)
         else:
@@ -398,6 +391,18 @@ def _check_ip(ip_addr: str) -> str:
     return ip_addr
 
 
+def _check_host(hostname: str) -> str:
+    """Validate hostname is an IP address if not using Spectrum Lookup"""
+    if not all([SPECTRUM_URL, SPECTRUM_USERNAME, SPECTRUM_PASSWORD]):
+        if not is_ipv4(hostname):
+            msg = (
+                f"{hostname} is not a valid IPv4 address. "
+                f"Spectrum info is not provided so cannot perform lookup."
+            )
+        raise argparse.ArgumentTypeError(msg)
+    return hostname
+
+
 def _check_port(port: str) -> str:
     """Validate TCP/IP port"""
     iport = int(port)
@@ -417,14 +422,14 @@ def _process_args() -> argparse.Namespace:
     parser.add_argument(
         "host",
         help="IP address or name of remote device to connect to",
-        type=str,
+        type=_check_host,
     )
     parser.add_argument(
         "-s",
         "--spectro_ip",
         help="IP address of SpectroServer",
         default=SPECTROSERVER_HOST,
-        type=_check_ip
+        type=_check_ip,
     )
     parser.add_argument(
         "-p",
