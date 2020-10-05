@@ -330,7 +330,7 @@ def main(args: argparse.Namespace) -> None:
         elif len(devices) > 1:
             print("Error: Mulitple device matches found:")
             for device in sorted(devices, key=lambda i: i["name"]):
-                print(device.get("name"))
+                print(f"{device.get('name')} ({device.get('ip_addr')})")
             sys.exit(1)
         else:
             print(f'Error: No device with name "{args.host}" found')
