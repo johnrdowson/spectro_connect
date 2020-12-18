@@ -8,7 +8,6 @@ Connect to a remote device using PuTTY via SpectroServer.
 import socket
 import sys
 import logging
-import time
 import threading
 import argparse
 import ipaddress
@@ -16,7 +15,7 @@ import os
 import requests
 import platform
 from lxml import etree
-from typing import Tuple, List, Dict, Callable
+from typing import List, Dict
 from telnetlib import Telnet
 from subprocess import Popen
 
@@ -46,8 +45,8 @@ def strip_ns(root: etree.Element) -> etree.Element:
     to deal with the complexities of namespaces.
     """
 
-    # first we visit each node in the tree and set the tag name to its localname
-    # value; thus removing its namespace prefix
+    # first we visit each node in the tree and set the tag name to its
+    # localname value; thus removing its namespace prefix
 
     for elem in root.getiterator():
         elem.tag = etree.QName(elem).localname
@@ -76,7 +75,7 @@ def spectrum_device_search_by_name(name: str) -> List[Dict[str, str]]:
     # hostname string (case ignored).
 
     payload = f"""<?xml version="1.0" encoding="UTF-8"?>
-    <rs:model-request 
+    <rs:model-request
     xmlns:rs="http://www.ca.com/spectrum/restful/schema/request"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     throttlesize="60000"
@@ -84,7 +83,7 @@ def spectrum_device_search_by_name(name: str) -> List[Dict[str, str]]:
     ../../../xsd/Request.xsd">
         <rs:target-models>
             <rs:models-search>
-                <rs:search-criteria 
+                <rs:search-criteria
                 xmlns="http://www.ca.com/spectrum/restful/schema/filter">
                     <devices-only-search>
                     </devices-only-search>
@@ -150,26 +149,26 @@ def transfer(src: socket.socket, dst: socket.socket, send: bool) -> None:
     while True:
         try:
             buffer = src.recv(0x400)
-        except:
+        except socket.error:
             break
         if len(buffer) == 0:
             logging.debug("[-] No data received! Breaking...")
             break
         try:
             dst.send(buffer)
-        except:
+        except socket.error:
             break
     logging.debug(f"[+] Closing connections! [{src_addr}:{src_port}]")
     try:
         src.shutdown(socket.SHUT_RDWR)
         src.close()
-    except:
+    except socket.error:
         pass
     logging.debug(f"[+] Closing connections! [{dst_addr}:{dst_port}]")
     try:
         dst.shutdown(socket.SHUT_RDWR)
         dst.close()
-    except:
+    except socket.error:
         pass
 
 
@@ -199,11 +198,11 @@ def start_server(
     """
 
     # Start listening on server socket
-    logging.debug(f"[+] Starting server")
+    logging.debug("[+] Starting server")
     server_socket.listen()
 
     # Wait for incoming connection on server socket
-    logging.debug(f"[+] Waiting for incoming connection")
+    logging.debug("[+] Waiting for incoming connection")
     client_socket, client_addr = server_socket.accept()
     logging.debug(
         f"[+] Connection detected from [{client_addr[0]}:{client_addr[1]}]"
@@ -240,18 +239,18 @@ def start_server(
     try:
         remote_socket.shutdown(socket.SHUT_RDWR)
         remote_socket.close()
-    except:
+    except socket.error:
         pass
     try:
         client_socket.shutdown(socket.SHUT_RDWR)
         client_socket.close()
-    except:
+    except socket.error:
         pass
     logging.debug("[+] Closing the server...")
     try:
         server_socket.shutdown(socket.SHUT_RDWR)
         server_socket.close()
-    except:
+    except socket.error:
         pass
     logging.debug("[+] Server shutdown!")
 
@@ -261,13 +260,18 @@ def console_dispath(platform: str, **kwargs) -> None:
     console_functions = {
         "windows": start_putty_session,
         "linux": start_shell_session,
+        "scp": start_scp_session,
     }
     func = console_functions.get(platform.lower(), start_shell_session)
     return func(**kwargs)
 
 
 def start_putty_session(
-    server_ip: str, server_port: int, device_ip: str, protocol: str = "ssh"
+    server_ip: str,
+    server_port: int,
+    device_ip: str,
+    protocol: str = "ssh",
+    **kwargs,
 ) -> None:
     """Start PuTTY Session when using Windows"""
 
@@ -281,7 +285,11 @@ def start_putty_session(
 
 
 def start_shell_session(
-    server_ip: str, server_port: int, device_ip: str, protocol: str = "ssh"
+    server_ip: str,
+    server_port: int,
+    device_ip: str,
+    protocol: str = "ssh",
+    **kwargs,
 ) -> None:
     """Start Shell Session when using Linux (inc. WSL)"""
 
@@ -290,11 +298,38 @@ def start_shell_session(
     else:
         bash_cmd = (
             f"ssh -o HostKeyAlias={device_ip} "
-            f"-o KexAlgorithms=+diffie-hellman-group1-sha1 "
+            f"-o KexAlgorithms=+diffie-hellman-group1-sha1,"
+            f"diffie-hellman-group-exchange-sha1 "
             f"-o Ciphers=+aes256-cbc "
             f"{input('Username: ')}@{server_ip} -p {server_port}"
         )
 
+    logging.debug(f"[+] Starting session with [{bash_cmd}]")
+    Popen(bash_cmd, shell=True)
+
+
+def start_scp_session(
+    server_ip: str,
+    server_port: int,
+    device_ip: str,
+    filename: str,
+    protocol: str = "ssh",
+    download: bool = True,
+    **kwargs,
+) -> None:
+    """SCP operation"""
+    bash_cmd = (
+        f"scp -o HostKeyAlias={device_ip} "
+        f"-o KexAlgorithms=+diffie-hellman-group1-sha1,"
+        f"diffie-hellman-group-exchange-sha1 "
+        f"-o Ciphers=+aes256-cbc "
+        f"-P {server_port} "
+    )
+    remote_file = f"{input('Username: ')}@{server_ip}:{filename}"
+    if download:
+        bash_cmd += f"{remote_file} {filename}"
+    else:
+        bash_cmd += f"{filename} {remote_file}"
     logging.debug(f"[+] Starting session with [{bash_cmd}]")
     Popen(bash_cmd, shell=True)
 
@@ -337,7 +372,7 @@ def main(args: argparse.Namespace) -> None:
             sys.exit(1)
 
     # Use port argument if provided, otherwise use protocol default
-    device_port = args.port if args.port else str(DEFAULT_PORTS.get(protocol))
+    device_port = args.port or str(DEFAULT_PORTS.get(protocol))
 
     # Check for SpectroServer IP
     if args.spectro_ip:
@@ -368,6 +403,7 @@ def main(args: argparse.Namespace) -> None:
             device_port,
         ),
     )
+    svr_thread.daemon = True
     svr_thread.start()
 
     # Launch console session based on local OS
@@ -377,6 +413,7 @@ def main(args: argparse.Namespace) -> None:
         server_ip=server_ip,
         server_port=server_port,
         device_ip=device_ip,
+        filename=args.filename,
     )
 
     # Wait for server thread to terminate
@@ -454,6 +491,12 @@ def _process_args() -> argparse.Namespace:
         dest="loglevel",
         const=logging.DEBUG,
         default=logging.INFO,
+    )
+    parser.add_argument(
+        "-f",
+        "--filename",
+        help="File to transfer via SCP",
+        type=str,
     )
 
     return parser.parse_args()
