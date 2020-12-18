@@ -385,7 +385,6 @@ def main() -> None:
         server_ip=server_ip,
         server_port=server_port,
         device_ip=device_ip,
-        filename=args.filename,
     )
 
     # Wait for server thread to terminate

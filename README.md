@@ -1,16 +1,16 @@
-# spectro_connect
+# spectro-connect
 
 A CLI tool to connect to devices via a SpectroServer instance (DX Spectrum)
 
 ## Installation
 
-`pip install spectro_connect`
+`pip install spectro-connect`
 
 ## Usage
 
 ```bash
-$ spectro_connect --help
-usage: spectro_connect [-h] [-s SPECTRO_IP] [-p PORT] [-t] [-v] host
+$ spectro-connect --help
+usage: spectro-connect [-h] [-s SPECTRO_IP] [-p PORT] [-t] [-v] host
 
 SpectroServer Connect Tool
 
@@ -51,20 +51,20 @@ If just an IP address is provided, it will attempt to estabish an SSH
 connection:
 
 ```bash
-spectro_connect 172.31.100.20
+spectro-connect 172.31.100.20
 ```
 
 If there environment variable `SPECTROSERVER_HOST` is not defined, the IP
 address of the SpectroServer must be provided after the `-s` flag:
 
 ```bash
-spectro_connect -s 10.30.40.100 172.31.100.20
+spectro-connect -s 10.30.40.100 172.31.100.20
 ```
 
 You can force a Telnet connection by including the `--telnet` flag:
 
 ```bash
-spectro_connect 172.31.100.20 --telnet
+spectro-connect 172.31.100.20 --telnet
 ```
 
 If a hostname is provided (i.e. anything other than an IPv4 address), a lookup
@@ -73,5 +73,5 @@ script will connect using the appropriate protocol, based on the NCM family of
 that particular device:
 
 ```bash
-spectro_connect CORE_RTR01
+spectro-connect CORE_RTR01
 ```
