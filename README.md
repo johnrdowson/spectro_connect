@@ -1,62 +1,44 @@
-# Spectrum Tools
+# spectro_connect
 
-A collection of tools which utilise an existing CA Spectrum environment.
+A CLI tool to connect to devices via a SpectroServer instance (DX Spectrum)
 
 ## Installation
 
-1. Clone the repository to your machine:
-
-    ```bash
-    git clone https://github.com/johnrdowson/spectrum_tools.git
-    ```
-
-2. (Optional) Create and activate a new Python virtual environment:
-
-    - Linux/macOS:
-
-        ```bash
-        python -m venv venv
-        source venv/bin/activate
-        ```
-
-    - Windows (Git Bash):
-
-        ```bash
-        py -3 -m venv venv
-        source venv/Scripts/activate
-        ```
-
-3. Install dependancies:
-
-    ```bash
-    pip install -r requirements
-    ```
-
-4. (Optional) Add environment variable `SPECTROSERVER_HOST` for SpectroServer's
-   IP address:
-
-    ```bash
-    echo export "SPECTROSERVER_HOST=10.30.40.100" >> ~/.bash_profile
-    ```
-
-5. (Optional) For Spectrum integration (i.e. name lookups), add the following
-   environment variables:
-
-     - `SPECTRUM_URL` - Spectrum OneClick URL
-     - `SPECTRUM_USERNAME` - Username to access Spectrum OneClick
-     - `SPECTRUM_PASSWORD` - Password to access Spectrum OneClick
-
-    Example:
-
-    ```bash
-    echo export "SPECTRUM_URL=http://spectrum-oc:8080" >> ~/.bash_profile
-    echo export "SPECTRUM_USERNAME=operator" >> ~/.bash_profile
-    echo export "SPECTRUM_PASSWORD=P@55w0rd123!" >> ~/.bash_profile
-    ```
+`pip install spectro_connect`
 
 ## Usage
 
-### Spectrum Connect
+```bash
+$ spectro_connect --help
+usage: spectro_connect [-h] [-s SPECTRO_IP] [-p PORT] [-t] [-v] host
+
+SpectroServer Connect Tool
+
+positional arguments:
+  host                  IP address or name of remote device to connect to
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -s SPECTRO_IP, --spectro_ip SPECTRO_IP
+                        IP address of SpectroServer
+  -p PORT, --port PORT  Port to connect to on remote device
+  -t, --telnet          Connect using Telnet
+  -v, --verbose         Verbose output
+```
+
+## Environment Variables
+
+To specify the SpectroServer IP (rather than using the `-s` flag each time):
+
+- `SPECTROSERVER_HOST`
+
+To enable Spectrum OneClick integration for device name lookups (recommended):
+
+- `SPECTRUM_URL` - URL of Spectrum OneClick
+- `SPECTRUM_USERNAME` - Username to access Spectrum OneClick
+- `SPECTRUM_PASSWORD` - Password to access Spectrum OneClick
+
+## Example Usage
 
 This tool provides an SSH or Telnet session to a device managed in Spectrum.
 The connection is relayed through SpectroServer, using the same mechanism as
@@ -69,20 +51,20 @@ If just an IP address is provided, it will attempt to estabish an SSH
 connection:
 
 ```bash
-python spectro_connect.py 172.31.100.20
+spectro_connect 172.31.100.20
 ```
 
 If there environment variable `SPECTROSERVER_HOST` is not defined, the IP
 address of the SpectroServer must be provided after the `-s` flag:
 
 ```bash
-python spectro_connect.py -s 10.30.40.100 172.31.100.20
+spectro_connect -s 10.30.40.100 172.31.100.20
 ```
 
 You can force a Telnet connection by including the `--telnet` flag:
 
 ```bash
-python spectro_connect.py 172.31.100.20 --telnet
+spectro_connect 172.31.100.20 --telnet
 ```
 
 If a hostname is provided (i.e. anything other than an IPv4 address), a lookup
@@ -91,5 +73,5 @@ script will connect using the appropriate protocol, based on the NCM family of
 that particular device:
 
 ```bash
-python spectro_connect.py CORE_RTR01
+spectro_connect CORE_RTR01
 ```
