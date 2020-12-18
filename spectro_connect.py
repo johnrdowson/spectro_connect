@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-"""
-SpectroServer Connect Tool
 
-Connect to a remote device using PuTTY via SpectroServer.
+"""
+Author: John Dowson
+Purpose: Connect to a remote device via SpectroServer.
 """
 
 import socket
@@ -204,14 +204,10 @@ def start_server(
     # Wait for incoming connection on server socket
     logging.debug("[+] Waiting for incoming connection")
     client_socket, client_addr = server_socket.accept()
-    logging.debug(
-        f"[+] Connection detected from [{client_addr[0]}:{client_addr[1]}]"
-    )
+    logging.debug(f"[+] Connection detected from [{client_addr[0]}:{client_addr[1]}]")
 
     # Connect to Spectrum Relay via Telnet and send relay command
-    logging.info(
-        f"[+] Connecting to [{device_ip}:{device_port}] via Spectro Server"
-    )
+    logging.info(f"[+] Connecting to [{device_ip}:{device_port}] via Spectro Server")
     relay_cmd = f"relay {device_ip} {str(device_port)}"
     tn = Telnet(spectro_ip, spectro_port)
     tn.write(relay_cmd.encode("ascii") + "\r\n".encode("ascii"))
@@ -260,7 +256,6 @@ def console_dispath(platform: str, **kwargs) -> None:
     console_functions = {
         "windows": start_putty_session,
         "linux": start_shell_session,
-        "scp": start_scp_session,
     }
     func = console_functions.get(platform.lower(), start_shell_session)
     return func(**kwargs)
@@ -308,38 +303,17 @@ def start_shell_session(
     Popen(bash_cmd, shell=True)
 
 
-def start_scp_session(
-    server_ip: str,
-    server_port: int,
-    device_ip: str,
-    filename: str,
-    protocol: str = "ssh",
-    download: bool = True,
-    **kwargs,
-) -> None:
-    """SCP operation"""
-    bash_cmd = (
-        f"scp -o HostKeyAlias={device_ip} "
-        f"-o KexAlgorithms=+diffie-hellman-group1-sha1,"
-        f"diffie-hellman-group-exchange-sha1 "
-        f"-o Ciphers=+aes256-cbc "
-        f"-P {server_port} "
-    )
-    remote_file = f"{input('Username: ')}@{server_ip}:{filename}"
-    if download:
-        bash_cmd += f"{remote_file} {filename}"
-    else:
-        bash_cmd += f"{filename} {remote_file}"
-    logging.debug(f"[+] Starting session with [{bash_cmd}]")
-    Popen(bash_cmd, shell=True)
-
-
-def main(args: argparse.Namespace) -> None:
+def main() -> None:
     """
     Execution starts here
     """
 
+    # Collect and process arguments
+
+    args = _process_args()
+
     # Set logging level
+
     logging.basicConfig(
         level=args.loglevel,
         format="[%(levelname)s] (%(threadName)-10s) %(message)s",
@@ -358,9 +332,7 @@ def main(args: argparse.Namespace) -> None:
             logging.info(f"[+] Found device [{devices[0]['name']}]")
             device_ip = devices[0]["ip_addr"]
             protocol = (
-                "telnet"
-                if devices[0]["pfm"] in TELNET_PLATFORMS
-                else args.protocol
+                "telnet" if devices[0]["pfm"] in TELNET_PLATFORMS else args.protocol
             )
         elif len(devices) > 1:
             print("Error: Mulitple device matches found:")
@@ -492,15 +464,9 @@ def _process_args() -> argparse.Namespace:
         const=logging.DEBUG,
         default=logging.INFO,
     )
-    parser.add_argument(
-        "-f",
-        "--filename",
-        help="File to transfer via SCP",
-        type=str,
-    )
 
     return parser.parse_args()
 
 
 if __name__ == "__main__":
-    main(_process_args())
+    main()
