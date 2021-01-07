@@ -407,7 +407,7 @@ def _check_host(hostname: str) -> str:
                 f"{hostname} is not a valid IPv4 address. "
                 f"Spectrum info is not provided so cannot perform lookup."
             )
-        raise argparse.ArgumentTypeError(msg)
+            raise argparse.ArgumentTypeError(msg)
     return hostname
 
 
