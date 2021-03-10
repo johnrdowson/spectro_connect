@@ -424,7 +424,7 @@ def _check_host(hostname: str) -> str:
     return hostname
 
 
-def _check_port(port: str) -> str:
+def _check_port(port: str) -> int:
     """Validate TCP/IP port"""
     iport = int(port)
     if iport not in range(1, 65535):
