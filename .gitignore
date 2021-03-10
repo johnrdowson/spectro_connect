@@ -146,3 +146,8 @@ dmypy.json
 
 # Dev environment settings
 .vscode/
+
+# Dev files/directories
+files/
+inventory/
+constants.py
