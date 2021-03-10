@@ -16,7 +16,6 @@ import requests
 import platform
 from lxml import etree
 from typing import List, Dict
-from telnetlib import Telnet
 from subprocess import Popen
 
 
@@ -172,13 +171,13 @@ def transfer(src: socket.socket, dst: socket.socket, send: bool) -> None:
         pass
 
 
-def create_server_socket() -> socket.socket:
+def create_server_socket(local_port: int = 0) -> socket.socket:
     """
     Creates a new socket object and binds that to the localhost on a free port
     """
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    server_socket.bind(("127.0.0.1", 0))
+    server_socket.bind(("127.0.0.1", local_port))
     return server_socket
 
 
@@ -204,14 +203,19 @@ def start_server(
     # Wait for incoming connection on server socket
     logging.debug("[+] Waiting for incoming connection")
     client_socket, client_addr = server_socket.accept()
-    logging.debug(f"[+] Connection detected from [{client_addr[0]}:{client_addr[1]}]")
+    logging.debug(
+        f"[+] Connection detected from [{client_addr[0]}:{client_addr[1]}]"
+    )
 
-    # Connect to Spectrum Relay via Telnet and send relay command
-    logging.info(f"[+] Connecting to [{device_ip}:{device_port}] via Spectro Server")
-    relay_cmd = f"relay {device_ip} {str(device_port)}"
-    tn = Telnet(spectro_ip, spectro_port)
-    tn.write(relay_cmd.encode("ascii") + "\r\n".encode("ascii"))
-    remote_socket = tn.get_socket()
+    # Connect to SpectroServer and issue relay command
+    logging.info(
+        f"[+] Connecting to host [{device_ip}:{device_port}] "
+        f"via SpectroServer [{spectro_ip}:{spectro_port}]"
+    )
+    relay_cmd = f"relay {device_ip} {str(device_port)}\r\n"
+    remote_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    remote_socket.connect((spectro_ip, spectro_port))
+    remote_socket.send(relay_cmd.encode("ascii"))
     logging.debug("[+] Tunnel connected! Transferring data...")
 
     # Create the send and receive threads for transfering data between sockets
@@ -332,7 +336,9 @@ def main() -> None:
             logging.info(f"[+] Found device [{devices[0]['name']}]")
             device_ip = devices[0]["ip_addr"]
             protocol = (
-                "telnet" if devices[0]["pfm"] in TELNET_PLATFORMS else args.protocol
+                "telnet"
+                if devices[0]["pfm"] in TELNET_PLATFORMS
+                else args.protocol
             )
         elif len(devices) > 1:
             print("Error: Mulitple device matches found:")
@@ -344,7 +350,7 @@ def main() -> None:
             sys.exit(1)
 
     # Use port argument if provided, otherwise use protocol default
-    device_port = args.port or str(DEFAULT_PORTS.get(protocol))
+    device_port = args.port or DEFAULT_PORTS.get(protocol)
 
     # Check for SpectroServer IP
     if args.spectro_ip:
@@ -360,7 +366,7 @@ def main() -> None:
         sys.exit(1)
 
     # Create server socket
-    server_socket = create_server_socket()
+    server_socket = create_server_socket(args.local_port)
     server_ip, server_port = server_socket.getsockname()
     logging.debug(f"[+] Created server socket on [{server_ip}:{server_port}]")
 
@@ -378,14 +384,21 @@ def main() -> None:
     svr_thread.daemon = True
     svr_thread.start()
 
-    # Launch console session based on local OS
-    console_dispath(
-        platform=platform.system(),
-        protocol=protocol,
-        server_ip=server_ip,
-        server_port=server_port,
-        device_ip=device_ip,
-    )
+    if args.proxy:
+        # Just output the local socket information
+        logging.info(
+            f"[+] Proxy socket details: {server_ip}:{server_port}. "
+            f"Awaiting connection..."
+        )
+    else:
+        # Launch console session based on local OS
+        console_dispath(
+            platform=platform.system(),
+            protocol=protocol,
+            server_ip=server_ip,
+            server_port=server_port,
+            device_ip=device_ip,
+        )
 
     # Wait for server thread to terminate
     svr_thread.join()
@@ -401,13 +414,13 @@ def _check_ip(ip_addr: str) -> str:
 
 def _check_host(hostname: str) -> str:
     """Validate hostname is an IP address if not using Spectrum Lookup"""
-    if not all([SPECTRUM_URL, SPECTRUM_USERNAME, SPECTRUM_PASSWORD]):
-        if not is_ipv4(hostname):
-            msg = (
-                f"{hostname} is not a valid IPv4 address. "
-                f"Spectrum info is not provided so cannot perform lookup."
-            )
-            raise argparse.ArgumentTypeError(msg)
+    valid_spectrum = all([SPECTRUM_URL, SPECTRUM_USERNAME, SPECTRUM_PASSWORD])
+    if not valid_spectrum and not is_ipv4(hostname):
+        msg = (
+            f"{hostname} is not a valid IPv4 address. "
+            f"Spectrum info is not provided so cannot perform lookup."
+        )
+        raise argparse.ArgumentTypeError(msg)
     return hostname
 
 
@@ -417,7 +430,7 @@ def _check_port(port: str) -> str:
     if iport not in range(1, 65535):
         msg = f"{port} is not a valid port"
         raise argparse.ArgumentTypeError(msg)
-    return str(iport)
+    return iport
 
 
 def _process_args() -> argparse.Namespace:
@@ -444,6 +457,19 @@ def _process_args() -> argparse.Namespace:
         "--port",
         help="Port to connect to on remote device",
         type=_check_port,
+    )
+    parser.add_argument(
+        "-l",
+        "--local_port",
+        help="Local port to use for local proxy socket",
+        type=_check_port,
+        default=0,
+    )
+    parser.add_argument(
+        "-x",
+        "--proxy",
+        help="Just provide a local proxy socket",
+        action="store_true",
     )
     parser.add_argument(
         "-t",
