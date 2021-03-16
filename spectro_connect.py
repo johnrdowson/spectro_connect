@@ -27,6 +27,13 @@ SPECTROSERVER_PORT = os.getenv("SPECTROSERVER_PORT", 31415)
 DEFAULT_PORTS = {"ssh": 22, "telnet": 23}
 TELNET_PLATFORMS = ["8519702"]
 
+# Colours
+
+WARNING = "\033[93m"
+OKGREEN = '\033[92m'
+OKCYAN = "\033[96m"
+ENDC = "\033[0m"
+
 
 def is_ipv4(string: str) -> bool:
     """Returns True if string is a valid IPv4 address"""
@@ -173,7 +180,8 @@ def transfer(src: socket.socket, dst: socket.socket, send: bool) -> None:
 
 def create_server_socket(local_port: int = 0) -> socket.socket:
     """
-    Creates a new socket object and binds that to the localhost on a free port
+    Attempts to creates a new socket object and binds that to the localhost
+    the specified port. The default of 0 indicates a free port will be used.
     """
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -209,8 +217,8 @@ def start_server(
 
     # Connect to SpectroServer and issue relay command
     logging.info(
-        f"[+] Connecting to host [{device_ip}:{device_port}] "
-        f"via SpectroServer [{spectro_ip}:{spectro_port}]"
+        f"[+] Connecting to host [{OKCYAN}{device_ip}:{device_port}{ENDC}] "
+        f"through SpectroServer [{OKCYAN}{spectro_ip}:{spectro_port}{ENDC}]"
     )
     relay_cmd = f"relay {device_ip} {str(device_port)}\r\n"
     remote_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -318,10 +326,12 @@ def main() -> None:
 
     # Set logging level
 
-    logging.basicConfig(
-        level=args.loglevel,
-        format="[%(levelname)s] (%(threadName)-10s) %(message)s",
-    )
+    # logging.basicConfig(
+    #     level=args.loglevel,
+    #     format="[%(levelname)s] (%(threadName)-10s) %(message)s",
+    # )
+
+    logging.basicConfig(level=args.loglevel, format="%(message)s")
 
     # If host is an IPv4 address, use this as the device IP. Otherwise,
     # perform Spectrum lookup
@@ -333,7 +343,9 @@ def main() -> None:
         devices = spectrum_device_search_by_name(args.host)
 
         if len(devices) == 1:
-            logging.info(f"[+] Found device [{devices[0]['name']}]")
+            logging.info(
+                f"[+] Found device {OKGREEN}{devices[0]['name']}{ENDC}"
+            )
             device_ip = devices[0]["ip_addr"]
             protocol = (
                 "telnet"
@@ -341,7 +353,7 @@ def main() -> None:
                 else args.protocol
             )
         elif len(devices) > 1:
-            print("Error: Mulitple device matches found:")
+            print(f"{WARNING}Error: Mulitple device matches found:{ENDC}")
             for device in sorted(devices, key=lambda i: i["name"]):
                 print(f"{device.get('name')} ({device.get('ip_addr')})")
             sys.exit(1)
