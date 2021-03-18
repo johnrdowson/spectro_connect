@@ -30,7 +30,7 @@ TELNET_PLATFORMS = ["8519702"]
 # Colours
 
 WARNING = "\033[93m"
-OKGREEN = '\033[92m'
+OKGREEN = "\033[92m"
 OKCYAN = "\033[96m"
 ENDC = "\033[0m"
 
