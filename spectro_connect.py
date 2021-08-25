@@ -129,6 +129,7 @@ def spectrum_device_search_by_name(name: str) -> List[Dict[str, str]]:
 
     devices = {
         model.find("attribute[@id='0x1006e']").text: {
+            "name": model.find("attribute[@id='0x1006e']").text,
             "ip_addr": model.find("attribute[@id='0x12d7f']").text,
             "pfm": model.find("attribute[@id='0x12bef']").text,
         }
@@ -344,15 +345,17 @@ def main() -> None:
             )
             sys.exit(1)
 
-        if len(devices) > 1 and not devices.get(args.host):
-            print(f"{WARNING}Error: Mulitple device matches found:{ENDC}")
+        if len(devices) > 1:
+            print(f"{WARNING}Mulitple device matches found:{ENDC}")
             for device, data in sorted(devices.items()):
-                print(f"{device} ({data.get('ip_addr')})")
-            sys.exit(1)
+                print(f"{device} ({data['ip_addr']})")
+            if not devices.get(args.host):
+                print(f"{WARNING}No matches found{ENDC}")
+                sys.exit(1)
 
         device = devices.get(args.host, devices[next(iter(devices))])
 
-        logging.info(f"[+] Found device {OKGREEN}{args.host}{ENDC}")
+        logging.info(f"[+] Found device {OKGREEN}{device['name']}{ENDC}")
         device_ip = device["ip_addr"]
         protocol = (
             "telnet" if device["pfm"] in TELNET_PLATFORMS else args.protocol
