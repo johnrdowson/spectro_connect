@@ -30,7 +30,7 @@ TELNET_PLATFORMS = ["8519702"]
 # Colours
 
 WARNING = "\033[93m"
-OKGREEN = '\033[92m'
+OKGREEN = "\033[92m"
 OKCYAN = "\033[96m"
 ENDC = "\033[0m"
 
@@ -124,26 +124,18 @@ def spectrum_device_search_by_name(name: str) -> List[Dict[str, str]]:
     # We first check if there are any at all, then loop through the results
     # and append each one to the 'devices' list, which is then returned.
 
-    devices_found = []
-    models = root.xpath("model-responses")[0]
-    # print(etree.tostring(models, pretty_print=True).decode())
+    etmodels = root.findall(".//model")
+    # print(etree.tostring(etmodels, pretty_print=True).decode())
 
-    if len(models) > 0:
-        names = models.xpath("model/attribute[@id='0x1006e']/text()")
-        ip_addrs = models.xpath("model/attribute[@id='0x12d7f']/text()")
-        platforms = models.xpath("model/attribute[@id='0x12bef']/text()")
-        handles = models.xpath("model/@mh")
-        for index, name in enumerate(names):
-            devices_found.append(
-                {
-                    "mh": handles[index],
-                    "name": name,
-                    "ip_addr": ip_addrs[index],
-                    "pfm": platforms[index],
-                }
-            )
+    devices = {
+        model.find("attribute[@id='0x1006e']").text: {
+            "ip_addr": model.find("attribute[@id='0x12d7f']").text,
+            "pfm": model.find("attribute[@id='0x12bef']").text,
+        }
+        for model in etmodels
+    }
 
-    return devices_found
+    return devices
 
 
 def transfer(src: socket.socket, dst: socket.socket, send: bool) -> None:
@@ -337,29 +329,34 @@ def main() -> None:
     # perform Spectrum lookup
 
     if is_ipv4(args.host):
+
         device_ip = args.host
         protocol = args.protocol
+
     else:
+
         devices = spectrum_device_search_by_name(args.host)
 
-        if len(devices) == 1:
-            logging.info(
-                f"[+] Found device {OKGREEN}{devices[0]['name']}{ENDC}"
+        if not devices:
+            print(
+                f'{WARNING}Error: No device with name "{args.host}" '
+                f"found{ENDC}"
             )
-            device_ip = devices[0]["ip_addr"]
-            protocol = (
-                "telnet"
-                if devices[0]["pfm"] in TELNET_PLATFORMS
-                else args.protocol
-            )
-        elif len(devices) > 1:
+            sys.exit(1)
+
+        if len(devices) > 1 and not devices.get(args.host):
             print(f"{WARNING}Error: Mulitple device matches found:{ENDC}")
-            for device in sorted(devices, key=lambda i: i["name"]):
-                print(f"{device.get('name')} ({device.get('ip_addr')})")
+            for device, data in sorted(devices.items()):
+                print(f"{device} ({data.get('ip_addr')})")
             sys.exit(1)
-        else:
-            print(f'Error: No device with name "{args.host}" found')
-            sys.exit(1)
+
+        device = devices.get(args.host, devices[next(iter(devices))])
+
+        logging.info(f"[+] Found device {OKGREEN}{args.host}{ENDC}")
+        device_ip = device["ip_addr"]
+        protocol = (
+            "telnet" if device["pfm"] in TELNET_PLATFORMS else args.protocol
+        )
 
     # Use port argument if provided, otherwise use protocol default
     device_port = args.port or DEFAULT_PORTS.get(protocol)
@@ -367,8 +364,6 @@ def main() -> None:
     # Check for SpectroServer IP
     if args.spectro_ip:
         spectro_ip = args.spectro_ip
-    # elif SPECTROSERVER_HOST:
-    #     spectro_ip = SPECTROSERVER_HOST
     else:
         print("No SpectroServer IP address provided.")
         print(
